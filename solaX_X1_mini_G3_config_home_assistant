@@ -1,0 +1,131 @@
+sensor:
+#solax1localbegin    
+  - platform: rest
+    authentication: digest
+    scan_interval: 30
+    resource: http://192.168.xxx.xxx/ #changeIPAddress
+    payload: "optType=ReadRealTimeData&pwd=Put-in-SerialNo"
+    method: POST
+    headers: 
+      X-Forwarded-For: 5.5.5.8
+    name: "solax1_rest_local"
+    json_attributes:
+       - type
+       - sn
+       - ver
+       - Data
+       - Information
+    value_template: 'OK'  # dummy value, not used; avoids the "State max length is 255 characters" error
+#solax1localend
+
+template:
+   - sensor:
+#solaxl1ocalbegin
+       - name: solax1_local
+         state: > 
+               {% if state_attr('sensor.solax1_rest_local', 'sn') == "Put-in-SerialNo"  %}{{ now().strftime("%H:%M:%S") }}
+               {% else %}{{ (states('sensor.solax1_local')) }}{% endif %}
+         attributes: 
+           sn: >-
+               {% if state_attr('sensor.solax1_rest_local', 'sn') == "Put-in-SerialNo" %}{{ (state_attr('sensor.solax1_rest_local', 'sn')) }}
+               {% else %}{{ (state_attr('sensor.solax1_local', 'sn')) }}{% endif %}
+           ver: >-
+               {% if state_attr('sensor.solax1_rest_local', 'sn') == "Put-in-SerialNo" %}{{ (state_attr('sensor.solax1_rest_local', 'ver')) }}
+               {% else %}{{ (state_attr('sensor.solax1_local', 'ver')) }}{% endif %}
+           type: >-
+               {% if state_attr('sensor.solax1_rest_local', 'sn') == "Put-in-SerialNo" %}{{ (state_attr('sensor.solax1_rest_local', 'type')) }}
+               {% else %}{{ (state_attr('sensor.solax1_local', 'type')) }}{% endif %}
+           Data: >-
+               {% if state_attr('sensor.solax1_rest_local', 'sn') == "Put-in-SerialNo" %}{{ (state_attr('sensor.solax1_rest_local', 'Data')) }}
+               {% else %}{{ (state_attr('sensor.solax1_local', 'Data')) }}{% endif %}
+           Information: >-
+               {% if state_attr('sensor.solax1_rest_local', 'sn') == "Put-in-SerialNo" %}{{ (state_attr('sensor.solax1_rest_local', 'Information')) }}
+               {% else %}{{ (state_attr('sensor.solax1_local', 'Information')) }}{% endif %}
+
+       - name: "Solax1 AC Output Voltage"
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[0] / 10 }}"
+         unit_of_measurement: "V"
+         device_class: "voltage"
+         icon: 'mdi:sine-wave'
+
+       - name: "Solax1 AC Current"
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[1] / 10 }}"
+         unit_of_measurement: "A"
+         device_class: "current"
+         icon: 'mdi:sine-wave'
+
+       - name: "Solax1 AC Frequency"  
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[9] / 100 }}"
+         unit_of_measurement: "Hz"
+         device_class: "frequency"  
+         icon: 'mdi:sine-wave'
+
+       - name: "Solax1 AC Power"
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[2]   }}"
+         unit_of_measurement: "W"
+         device_class: "Power"
+         icon: 'mdi:solar-power-variant'
+ 
+       - name: "Solax1 PV Voltage"
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[3] /10 | float  }}"
+         unit_of_measurement: "V"
+         device_class: "voltage"
+         icon: 'mdi:solar-panel'
+  
+       - name: "Solax1 PV Current"
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[5] / 10 }}"
+         unit_of_measurement: "A"
+         device_class: "current"  
+         icon: 'mdi:solar-panel'
+
+       - name: "Solax1 Temperature"  
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[55] }}"
+         unit_of_measurement: "°C"
+         device_class: "temperature"  
+         icon: 'mdi:thermometer' 
+
+       - name: "Solax1 Inverter Operation Mode"
+         state: >
+          {%   if state_attr('sensor.solax1_local', 'Data')[10] ==  0 %}Waiting
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  1 %}Checking
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  2 %}Normal
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  3 %}Off
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  4 %}Permanent Fault
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  5 %}Updating
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  6 %}EPS Check
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  7 %}EPS Mode
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  8 %}Self Test
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] ==  9 %}Idle
+          {% elif state_attr('sensor.solax1_local', 'Data')[10] == 10 %}Standby
+          {% else %}I dont know{% endif %}
+
+       - name: "Solax1 PV Power"
+         unit_of_measurement: "W"
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[7]  }}"
+         device_class: "power"
+         icon: 'mdi:solar-panel'
+
+       - name: "Solax1 Energy Total"
+         unit_of_measurement: "kWh"
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[11] / 10 }}" 
+         device_class: energy
+         state_class: total_increasing
+         icon: 'mdi:solar-panel-large'
+
+       - name: "Solax1 Energy today"
+         unit_of_measurement: "kWh"
+         state: "{{ state_attr('sensor.solax1_local', 'Data')[13] / 10  }}" 
+         device_class: energy
+         state_class: total_increasing
+         icon: 'mdi:solar-power-variant-outline'
+
+       - name: "Solax1 Module SN"
+         state: "{{ state_attr('sensor.solax1_local', 'sn') }}"
+
+       - name: "Solax1 module fw version"
+         state: "{{ state_attr('sensor.solax1_local', 'ver') }}"
+
+       - name: "Solax1 Inverter SN"
+         state: "{{ state_attr('sensor.solax1_local', 'Information')[2] }}"
+
+#solax1localend
